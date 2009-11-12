@@ -1,0 +1,53 @@
+#!/usr/bin/env perl
+#
+# usage: gotags.pl filename [ filename ... ]
+#
+# Generates ctags-style tags file suitable for use with vim for the Go
+# Programming Language.  It assumes the the *.go files are formatted in the
+# style produced by the "gofmt" tool (i.e. type, var, func keywords are in the
+# first column).
+#
+# Author: michael.elkins@gmail.com
+# Date: 2009/11/11
+#
+
+# store tags list so that it may be sorted at the end
+@tags=();
+
+while ($curfile = shift) {
+	open(F, "<$curfile");
+	$line=0;
+	while (<F>) {
+		++$line;
+		s/\/\/.*//; # kill // style comments
+		if (/^package\s+(\w+)/) {
+			print "package = " . $1 . "\n" if $DEBUG;
+			push(@tags, "$1\t$curfile\t$line;\":p"); # in ctags, java uses :p for package, but c/c++ use it for prototype
+		} elsif (/^type\s*(\w+)/) {
+			push(@tags, "$1\t$curfile\t$line;\":t");
+		} elsif (/^func\s*(\([^)]+\)\s+)?(\w+)/) {
+			push @tags, "$2\t$curfile\t$line;\":f";
+		} elsif (/^(const|var)\s+\(/) {
+			# VAR block
+			while (<F>) {
+				++$line;
+				last if /^\)/;
+				/\s+(\w+)/;
+				push @tags, "$1\t$curfile\t$line;\":v";
+			}
+		} elsif (/^type\s+\(/) {
+			# TYPE block
+			while (<F>) {
+				++$line;
+				last if /^\)/;
+				push @tags, "$1\t$curfile\t$line;\":t";
+			}
+		}
+	}
+	close F;
+}
+
+# vim can use binary search when the tags file is sorted
+print "!_TAG_FILE_SORTED\t1\t\n";
+print (join "\n", sort @tags);
+print "\n";
