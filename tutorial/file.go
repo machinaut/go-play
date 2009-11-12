@@ -23,7 +23,7 @@ var (
     Stderr = newFile(2, "/dev/stderr");
 )
 
-            func Open(name string, mode int, perm int) (file *File, err os.Error) {
+func Open(name string, mode int, perm int) (file *File, err os.Error) {
     r, e := syscall.Open(name, mode, perm);
     if e != 0 {
         err = os.Errno(e)
