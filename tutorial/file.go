@@ -12,14 +12,15 @@ type File struct {
 
 func newFile(fd int, name string) *File {
     if fd < 0 {
-        return nil
+            return nil
     }
-    return &File{fd, name};
+    return          &File{fd, name};
 }
 
+//myshit
 var (
     Stdin  = newFile(0, "/dev/stdin");
-    Stdout = newFile(1, "/dev/stdout");
+        Stdout = newFile(1, "/dev/stdout");
     Stderr = newFile(2, "/dev/stderr");
 )
 
