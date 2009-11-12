@@ -6,19 +6,19 @@ import (
 )
 
 type File struct {
-    fd      int;    // file descriptor number
-    name    string; // file name at Open time
+    fd   int;    // file descriptor number
+    name string; // file name at Open time
 }
 
 func newFile(fd int, name string) *File {
     if fd < 0 {
         return nil
     }
-    return &File{fd, name}
+    return &File{fd, name};
 }
 
 var (
-    Stdin = newFile(0, "/dev/stdin");
+    Stdin  = newFile(0, "/dev/stdin");
     Stdout = newFile(1, "/dev/stdout");
     Stderr = newFile(2, "/dev/stderr");
 )
@@ -26,9 +26,9 @@ var (
 func Open(name string, mode int, perm int) (file *File, err os.Error) {
     r, e := syscall.Open(name, mode, perm);
     if e != 0 {
-        err = os.Errno(e);
+        err = os.Errno(e)
     }
-    return newFile(r, name), err
+    return newFile(r, name), err;
 }
 
 func (file *File) Close() os.Error {
@@ -38,9 +38,9 @@ func (file *File) Close() os.Error {
     e := syscall.Close(file.fd);
     file.fd = -1; // cant be closed again
     if e != 0 {
-        return os.Errno(e);
+        return os.Errno(e)
     }
-    return nil
+    return nil;
 }
 
 func (file *File) Read(b []byte) (ret int, err os.Error) {
@@ -49,9 +49,9 @@ func (file *File) Read(b []byte) (ret int, err os.Error) {
     }
     r, e := syscall.Read(file.fd, b);
     if e != 0 {
-        err = os.Errno(e);
+        err = os.Errno(e)
     }
-    return int(r), err
+    return int(r), err;
 }
 
 func (file *File) Write(b []byte) (ret int, err os.Error) {
@@ -60,12 +60,9 @@ func (file *File) Write(b []byte) (ret int, err os.Error) {
     }
     r, e := syscall.Write(file.fd, b);
     if e != 0 {
-        err = os.Errno(e);
+        err = os.Errno(e)
     }
-    return int(r), err
+    return int(r), err;
 }
 
-func (file *File) String() string {
-    return file.name
-}
-
+func (file *File) String() string { return file.name }
