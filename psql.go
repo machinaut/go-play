@@ -20,18 +20,20 @@ func main() {
 	}
 	log.Stdout("I think we connected");
 
-	strs := make([]string, 4);
+	strs := make([]string, 6);
 	strs[0] = "user";
 	strs[1] = "alex";
-	strs[2] = "database";
-	strs[3] = "ar_test";
+    strs[2] = "password";
+    strs[2] = "jar1!";
+	strs[4] = "database";
+	strs[5] = "ar_test";
 	str2 := strings.Join(strs, "\x00") + "\x00\x00";
 
 	mesg2 := strings.Bytes(str2);
 	hmesg := make([]byte, 4+4);
-	binary.BigEndian.PutUint32(hmesg[0:4], uint32(3));
+	binary.BigEndian.PutUint32(hmesg[4:8], uint32(3<<16));
 	hmesg = bytes.Add(hmesg, mesg2);
-	binary.BigEndian.PutUint32(hmesg[4:8], uint32(len(hmesg)));
+	binary.BigEndian.PutUint32(hmesg[0:4], uint32(len(hmesg)));
 	fmt.Println(hmesg);
 	fmt.Println(len(hmesg));
 	n, err := conn.Write(hmesg);
@@ -47,4 +49,7 @@ func main() {
 		log.Stdoutf("Error reading TCP: %s", err)
 	}
 	log.Stdoutf("Read %d", n);
+
+    conn.Close()
+
 }
