@@ -19,8 +19,10 @@ func main() {
 	str := "user\x00alex\x00database\x00ar_test\x00\x00";
 	mesg := strings.Bytes(str);
 	hmesg := make([]byte, 1+4+4);
+	hmesg[0] = 'F';
 	binary.BigEndian.PutUint32(hmesg[1:5], uint32(3));
-	fmt.Println(str, mesg, hmesg);
-	fmt.Println(len(str), len(mesg), len(hmesg));
-    bytes.Add
+	binary.BigEndian.PutUint32(hmesg[5:9], uint32(len(str)));
+	hmesg = bytes.Add(hmesg, mesg);
+	fmt.Println(hmesg);
+	fmt.Println(len(hmesg));
 }
