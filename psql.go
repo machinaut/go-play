@@ -31,7 +31,7 @@ func main() {
 	hmesg := make([]byte, 4+4);
 	binary.BigEndian.PutUint32(hmesg[0:4], uint32(3));
 	hmesg = bytes.Add(hmesg, mesg2);
-	binary.BigEndian.PutUint32(hmesg[4:8], uint32(len(hmesg)-1));
+	binary.BigEndian.PutUint32(hmesg[4:8], uint32(len(hmesg)));
 	fmt.Println(hmesg);
 	fmt.Println(len(hmesg));
 	n, err := conn.Write(hmesg);
@@ -42,7 +42,6 @@ func main() {
 	log.Stdoutf("wrote %d", n);
 
 	result := make([]byte, 100);
-	err = conn.SetReadTimeout(0);
 	n, err = conn.Read(result);
 	if err != nil {
 		log.Stdoutf("Error reading TCP: %s", err)
