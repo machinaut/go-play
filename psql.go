@@ -49,6 +49,7 @@ func main() {
 		log.Stdoutf("Error reading TCP: %s", err)
 	}
 	log.Stdoutf("Read %d", n);
+    fmt.Println(result);
 
     conn.Close()
 
