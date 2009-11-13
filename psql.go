@@ -28,11 +28,10 @@ func main() {
 	str2 := strings.Join(strs, "\x00") + "\x00\x00";
 
 	mesg2 := strings.Bytes(str2);
-	hmesg := make([]byte, 1+4+4);
-	hmesg[0] = 'F';
-	binary.BigEndian.PutUint32(hmesg[1:5], uint32(3));
+	hmesg := make([]byte, 4+4);
+	binary.BigEndian.PutUint32(hmesg[0:4], uint32(3));
 	hmesg = bytes.Add(hmesg, mesg2);
-	binary.BigEndian.PutUint32(hmesg[5:9], uint32(len(hmesg)-1));
+	binary.BigEndian.PutUint32(hmesg[4:8], uint32(len(hmesg)-1));
 	fmt.Println(hmesg);
 	fmt.Println(len(hmesg));
 	n, err := conn.Write(hmesg);
