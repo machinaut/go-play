@@ -8,6 +8,7 @@ import (
     "strings";
     "bytes";
     "encoding/binary";
+    "crypto/md5";
 )
 
 func main() {
@@ -21,13 +22,11 @@ func main() {
     }
     log.Stdout("I think we connected");
 
-    strs := make([]string, 6);
+    strs := make([]string, 4);
     strs[0] = "user";
     strs[1] = "alex";
-    strs[2] = "password";
-    strs[2] = "jar1!";
-    strs[4] = "database";
-    strs[5] = "ar_test";
+    strs[2] = "database";
+    strs[3] = "ar_test";
     str2 := strings.Join(strs, "\x00") + "\x00\x00";
 
     mesg2 := strings.Bytes(str2);
@@ -35,8 +34,6 @@ func main() {
     binary.BigEndian.PutUint32(hmesg[4:8], uint32(3<<16));
     hmesg = bytes.Add(hmesg, mesg2);
     binary.BigEndian.PutUint32(hmesg[0:4], uint32(len(hmesg)));
-    fmt.Println(hmesg);
-    fmt.Println(len(hmesg));
     n, err := conn.Write(hmesg);
 
     if err != nil {
@@ -46,20 +43,48 @@ func main() {
 
     result := make([]byte, 12);
     // the largest response we can get is 12 bytes
-    n, err = conn.Read(result);
+    if n, err = conn.Read(result); err != nil {
+        log.Exitf("Error reading TCP (Read %d bytes): %s", n, err)
+    }
+    log.Stdoutf("%c", result[0]);
+
+    switch string(result[0]) {
+    case psql_constants.Authentication:
+        log.Stdout("Got authentication message")
+    default:
+        log.Exit("Did not get authentication message")
+    }
+
+    mesglen := binary.BigEndian.Uint32(result[1:5]);
+    mesgtype := binary.BigEndian.Uint32(result[5:9]);
+
+    fmt.Println(mesglen, mesgtype);
+
+    passhash := md5.New();
+    passhash.Write(strings.Bytes("jar1!" + "alex"));
+    salthash := md5.New();
+    salthash.Write(passhash.Sum());
+    salthash.Write(result[9:12]);
+
+    passresponse := make([]byte, 5);
+    passresponse[0] = 'p';
+    binary.BigEndian.PutUint32(passresponse[1:5], uint32(4+salthash.Size()+1));
+    passresponse = bytes.Add(passresponse, strings.Bytes("md5"));
+    passresponse = bytes.Add(passresponse, salthash.Sum());
+    passresponse = bytes.AddByte(passresponse, byte(0));
+    fmt.Println(passresponse);
+    n, err = conn.Write(passresponse);
     if err != nil {
-        log.Stdoutf("Error reading TCP (Read %d bytes): %s", n, err)
+        log.Exitf("Error writing TCP: %s", err)
     }
-    fmt.Printf("%c", result[0]);
+    log.Stdoutf("wrote %d", n);
 
-    if string(result[0]) == psql_constants.Authentication {
-        fmt.Print("match")
-    } else {
-        fmt.Print("notmatch")
+    result = make([]byte, 18);
+    // the largest response we can get is 12 bytes
+    if n, err = conn.Read(result); err != nil {
+        log.Exitf("Error reading TCP (Read %d bytes): %s", n, err)
     }
-
-    fmt.Println(psql_constants.Authentication);
+    fmt.Println(result);
 
     conn.Close();
-
 }
