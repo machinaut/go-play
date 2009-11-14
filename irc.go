@@ -5,7 +5,7 @@ import (
     "net";
     "strings";
     "log";
-    "time";
+    "time";"regexp";
 )
 
 
@@ -60,6 +60,7 @@ func main() {
     conn.Write(strings.Bytes("USER " + username + " 8 * :" + realname + "\r\n"));
 
     // Get the server reply (all of it)
+    ircmesg := regexp.Compile("[^\r]*\r\n"); // TODO: use a regular expression to match the irc message lines (.*\r\n)
     log.Stdout("Username Response");
     for {
         reply = make([]byte, 1000);
@@ -67,28 +68,43 @@ func main() {
             if n, err := conn.Read(reply[i : i+1]); err != nil {
                 log.Exitf("Error reading server reply (read %d, %s): %s", n, reply, err)
             }
-            switch string(reply[i]) {
-            case "\n":
-                break
-            case "\x04":
-                goto chans
+            if string(reply[i]) == "\n" {
+                log.Stdoutf("RECEIVED: %s", strings.TrimSpace(string(reply)));
+                break;
             }
         }
-        log.Stdoutf("%s", reply);
+        if strings.Index(string(reply), "End of /MOTD command.") > 0 {
+            break
+        }
     }
+    log.Stdout("Done with Username Response");
 
     // Tell it a channame
 chans:
-    time.Sleep(int64(1e6));
+    time.Sleep(int64(5e6));
     channame := "#ncsulug"; // TODO: make this a parameter
-    conn.Write(strings.Bytes("JOIN " + channame + "\r\n"));
+    chanmesg := "JOIN " + channame + "\r\n";
+    conn.Write(strings.Bytes(chanmesg));
+    log.Stdoutf("SENT: %s", chanmesg);
 
     // Get the server reply
-    reply = make([]byte, 100000);
-    if n, err := conn.Read(reply); err != nil {
-        log.Exitf("Error reading server reply (read %d): %s", n, err)
+    log.Stdout("Channame Response");
+    for {
+        reply = make([]byte, 1000);
+        for i := 0; i < 1000; i++ {
+            if n, err := conn.Read(reply[i : i+1]); err != nil {
+                log.Exitf("Error reading server reply (read %d, %s): %s", n, reply, err)
+            }
+            if string(reply[i]) == "\n" {
+                log.Stdoutf("RECEIVED: %s", strings.TrimSpace(string(reply)));
+                break;
+            }
+        }
+        if strings.Index(string(reply), "End of /MOTD command.") > 0 {
+            break
+        }
     }
-    log.Stdoutf("Channame Response %s", reply);
+    log.Stdout("Done with Channame Response");
 
     // We're done with the connection, close it
     time.Sleep(int64(1));
