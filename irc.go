@@ -5,6 +5,7 @@ import (
     "net";
     "strings";
     "log";
+    "time";
 )
 
 
@@ -25,7 +26,7 @@ func main() {
     log.Stdoutf("Connected to server '%s'", server);
 
     // Get the server reply
-    reply := make([]byte, 100);
+    reply := make([]byte, 100000);
     if n, err := conn.Read(reply); err != nil {
         log.Exitf("Error reading server reply (Read %d): %s", n, err)
     }
@@ -36,36 +37,61 @@ func main() {
     conn.Write(strings.Bytes("PASS " + password + "\r\n"));
 
     // Get the server reply
-    reply = make([]byte, 100);
+    reply = make([]byte, 100000);
     if n, err := conn.Read(reply); err != nil {
         log.Exitf("Error reading server reply (Read %d): %s", n, err)
     }
     log.Stdoutf("Password Response %s", reply);
 
     // Tell it a nickname
-    nickname := "go_bot"; // TODO: make this a parameter
+    nickname := "go_bot1"; // TODO: make this a parameter
     conn.Write(strings.Bytes("NICK " + nickname + "\r\n"));
 
     // Get the server reply
-    reply = make([]byte, 100);
+    reply = make([]byte, 100000);
     if n, err := conn.Read(reply); err != nil {
         log.Exitf("Error reading server reply (read %d): %s", n, err)
     }
     log.Stdoutf("Nickname Response %s", reply);
 
-    // tell it a username
+    // Tell it a username
     username := "turing";        // TODO: make this a parameter
     realname := "Alonzo Church"; // TODO: make this a paramater
     conn.Write(strings.Bytes("USER " + username + " 8 * :" + realname + "\r\n"));
 
-    // get the server reply
-    reply = make([]byte, 100);
+    // Get the server reply (all of it)
+    log.Stdout("Username Response");
+    for {
+        reply = make([]byte, 1000);
+        for i := 0; i < 1000; i++ {
+            if n, err := conn.Read(reply[i : i+1]); err != nil {
+                log.Exitf("Error reading server reply (read %d, %s): %s", n, reply, err)
+            }
+            switch string(reply[i]) {
+            case "\n":
+                break
+            case "\x04":
+                goto chans
+            }
+        }
+        log.Stdoutf("%s", reply);
+    }
+
+    // Tell it a channame
+chans:
+    time.Sleep(int64(1e6));
+    channame := "#ncsulug"; // TODO: make this a parameter
+    conn.Write(strings.Bytes("JOIN " + channame + "\r\n"));
+
+    // Get the server reply
+    reply = make([]byte, 100000);
     if n, err := conn.Read(reply); err != nil {
         log.Exitf("Error reading server reply (read %d): %s", n, err)
     }
-    log.Stdoutf("Username Response %s", reply);
+    log.Stdoutf("Channame Response %s", reply);
 
     // We're done with the connection, close it
+    time.Sleep(int64(1));
     conn.Close();
 
 }
