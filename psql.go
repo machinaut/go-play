@@ -50,7 +50,13 @@ func main() {
     if err != nil {
         log.Stdoutf("Error reading TCP (Read %d bytes): %s", n, err)
     }
-    fmt.Println(result);
+    fmt.Printf("%c", result[0]);
+
+    if string(result[0]) == psql_constants.Authentication {
+        fmt.Print("match")
+    } else {
+        fmt.Print("notmatch")
+    }
 
     fmt.Println(psql_constants.Authentication);
 
