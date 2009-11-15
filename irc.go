@@ -4,8 +4,9 @@ package main
 import (
     "net";
     "strings";
-    "log";
-    "time";"regexp";
+    "log"; // TODO: implement actual Loggers
+    "bufio";
+    "strconv";
 )
 
 
@@ -25,140 +26,61 @@ func main() {
     }
     log.Stdoutf("Connected to server '%s'", server);
 
-    // Get the server reply
-    reply := make([]byte, 100000);
-    if n, err := conn.Read(reply); err != nil {
-        log.Exitf("Error reading server reply (Read %d): %s", n, err)
-    }
-    log.Stdoutf("Connection Response %s", reply);
-
-    // Tell it a session password
-    password := "foobarbazqux"; // TODO: make a real password
-    conn.Write(strings.Bytes("PASS " + password + "\r\n"));
-
-    // Get the server reply
-    reply = make([]byte, 100000);
-    if n, err := conn.Read(reply); err != nil {
-        log.Exitf("Error reading server reply (Read %d): %s", n, err)
-    }
-    log.Stdoutf("Password Response %s", reply);
-
-    // Tell it a nickname
-    nickname := "go_bot1"; // TODO: make this a parameter
-    conn.Write(strings.Bytes("NICK " + nickname + "\r\n"));
-
-    // Get the server reply
-    reply = make([]byte, 100000);
-    if n, err := conn.Read(reply); err != nil {
-        log.Exitf("Error reading server reply (read %d): %s", n, err)
-    }
-    log.Stdoutf("Nickname Response %s", reply);
-
-    // Tell it a username
+    // Formulate a message to login to server
+    // Password
+    password := "turing";
+    loginMessage := "PASS " + password + "\r\n";
+    // Nickname
+    nickname := "go_bot"; // TODO: make this a parameter
+    loginMessage += "NICK " + nickname + "\r\n";
+    // Username
     username := "turing";        // TODO: make this a parameter
     realname := "Alonzo Church"; // TODO: make this a paramater
-    conn.Write(strings.Bytes("USER " + username + " 8 * :" + realname + "\r\n"));
+    // Usermode
+    invisible := 1 << 3; // TODO: type user modes int const(whatever)
+    usermode := invisible;
+    // Send login message to server
+    loginMessage += "USER " + username + " " + strconv.Itoa(usermode) + " * :" + realname + "\r\n";
 
-    // Get the server reply (all of it)
-    ircmesg := regexp.Compile("[^\r]*\r\n"); // TODO: use a regular expression to match the irc message lines (.*\r\n)
-    log.Stdout("Username Response");
-    for {
-        reply = make([]byte, 1000);
-        for i := 0; i < 1000; i++ {
-            if n, err := conn.Read(reply[i : i+1]); err != nil {
-                log.Exitf("Error reading server reply (read %d, %s): %s", n, reply, err)
-            }
-            if string(reply[i]) == "\n" {
-                log.Stdoutf("RECEIVED: %s", strings.TrimSpace(string(reply)));
-                break;
-            }
-        }
-        if strings.Index(string(reply), "End of /MOTD command.") > 0 {
-            break
-        }
-    }
-    log.Stdout("Done with Username Response");
+    // Send a private message
+    recipient := "ajray";
+    message := "hi!";
+    loginMessage += "PRIVMSG " + recipient + " :" + message + "\r\n";
+
+    // Send a private message to NickServ identifying us
+    recipient = "NickServ";
+    message = "identify " + nickname + " " + password;
+    loginMessage += "PRIVMSG " + recipient + " :" + message + "\r\n";
 
     // Tell it a channame
-chans:
-    time.Sleep(int64(5e6));
-    channame := "#ncsulug"; // TODO: make this a parameter
-    chanmesg := "JOIN " + channame + "\r\n";
-    conn.Write(strings.Bytes(chanmesg));
-    log.Stdoutf("SENT: %s", chanmesg);
+    channame := "#bottest"; // TODO: make this a parameter
+    loginMessage += "JOIN " + channame + "\r\n";
+    conn.Write(strings.Bytes(loginMessage));
+    log.Stdoutf("SENT: %s", loginMessage);
 
-    // Get the server reply
-    log.Stdout("Channame Response");
-    for {
-        reply = make([]byte, 1000);
-        for i := 0; i < 1000; i++ {
-            if n, err := conn.Read(reply[i : i+1]); err != nil {
-                log.Exitf("Error reading server reply (read %d, %s): %s", n, reply, err)
-            }
-            if string(reply[i]) == "\n" {
-                log.Stdoutf("RECEIVED: %s", strings.TrimSpace(string(reply)));
-                break;
-            }
+    // Talk to server (loop forever)
+    connReader := bufio.NewReader(conn);
+    for i := 0; i < 100; i++ {
+        response, err := connReader.ReadString('\n');
+        if err != nil {
+            log.Exit("Error reading from connection:", err)
         }
-        if strings.Index(string(reply), "End of /MOTD command.") > 0 {
-            break
+        log.Stdoutf("RECEIVED: %s", strings.TrimSpace(response));
+        if response[0] != ':' { //not a private message
+            wd := strings.Split(response, " ", 2);
+            log.Stdout("Got Message ", wd[0]);
+            switch wd[0] { // Message Type
+            case "PING":
+                // TODO: find a better way to remove leading character in string
+                pongServer := string(strings.Bytes(wd[1])[1:len(wd[1])]);
+                pong := "PONG " + pongServer + "\r\n";
+                log.Stdout("SENT: ", pong);
+                conn.Write(strings.Bytes(pong));
+            }
         }
     }
-    log.Stdout("Done with Channame Response");
+    log.Stdout("Done reading response");
 
     // We're done with the connection, close it
-    time.Sleep(int64(1));
     conn.Close();
-
 }
-//// We will use a raw socket to connect to the IRC server.
-//use IO::Socket;
-//
-//// The server to connect to and our details.
-//my $server = "irc.freenode.net";
-//my $nick = "Homecoming";
-//my $login = "christmas";
-//
-//// The channel which the bot will join.
-//my $channel = "//DSotM";
-//
-//// Connect to the IRC server.
-//my $sock = new IO::Socket::INET(PeerAddr => $server,
-//                                PeerPort => 6667,
-//                                Proto => 'tcp') or
-//                                    die "Can't connect\n";
-//
-//// Log on to the server.
-//print $sock "NICK $nick\r\n";
-//print $sock "USER $login 8 * :Viva Pink Floyd!\r\n";
-//
-//// Read lines from the server until it tells us we have connected.
-//print "Connecting to irc.freenode.org...";
-//while (my $input = <$sock>) {
-//    // Check the numerical responses from the server.
-//    if ($input =~ /004/) {
-//        // We are now logged in.
-//	print "Connected.\n";
-//        last;
-//    }
-//    elsif ($input =~ /433/) {
-//        die "Nickname is already in use.";
-//    }
-//}
-//
-//// Join the channel.
-//print $sock "JOIN $channel\r\n";
-//
-//// Keep reading lines from the server.
-//while (my $input = <$sock>) {
-//    chop $input;
-//    if ($input =~ /^PING(.*)$/i) {
-//        // We must respond to PINGs to avoid being disconnected.
-//        print $sock "PONG $1\r\n";
-//    }
-//    else {
-//        // Print the raw line received by the bot.
-//        print "viva viva viva$input\n";
-//    }
-//}
-//
