@@ -1,5 +1,5 @@
 // IRC - Internet Relay Chat package provides a convenient method of writing IRC clients and chat bots (RFC 2812).
-package main
+package irc 
 
 import (
     "net";
@@ -9,55 +9,75 @@ import (
     "strconv";
 )
 
+// User modes for logging in, you probably just want Invisible on
+// (and Wallops off)
+type UserMode int
 
-func main() {
-    // Connect to the server
-    server := "irc.freenode.net:6667"; // TODO: make this not hardcoded
-    // First resolve the name:port to an address
-    addr, err := net.ResolveTCPAddr(server);
-    if err != nil {
-        log.Exitf("Error resolving server '%s': %s", server, err)
-    }
-    log.Stdoutf("Successfully resolved server '%s'", server);
-    // Then Dial the address we just found to connect
-    conn, err := net.DialTCP("tcp", nil, addr);
-    if err != nil {
-        log.Exitf("Error dialing server '%s': %s", server, err)
-    }
-    log.Stdoutf("Connected to server '%s'", server);
+const (
+    FlagWallops = 1 << 2; // Get wallops (globally broadcast messages)
+    FlagInvisible = 1 << 3; // User doesn't show up in WHO listings
+)
 
-    // Formulate a message to login to server
-    // Password
-    password := "turing";
-    loginMessage := "PASS " + password + "\r\n";
-    // Nickname
-    nickname := "go_bot"; // TODO: make this a parameter
-    loginMessage += "NICK " + nickname + "\r\n";
-    // Username
-    username := "turing";        // TODO: make this a parameter
-    realname := "Alonzo Church"; // TODO: make this a paramater
-    // Usermode
-    invisible := 1 << 3; // TODO: type user modes int const(whatever)
-    usermode := invisible;
-    // Send login message to server
+// IRCConn is an implementation of the net.Conn interface for IRC network connections.
+type IRCConn struct{
+    Nickname string;
+    Usermode int;
+    tcpConn *net.TCPConn; 
+    }
+
+// DialIRC() is like net.Dial() but can only connect to IRC networks
+// and returns a IRCConn structure.
+func IRCDial(net, laddr, raddr string) (c IRCConn, err os.Error) {
+    var conn *TCPConn;
+    if conn, err := net.Dial(net, laddr, raddr); err != nil {
+        return nil, err;
+    }
+    var c *IRCConn;
+    c.tcpConn = conn;
+    return c;
+}
+
+// Login() sends a login message with a given nickname
+// and a given usermode.
+func (c *IRCConn) Login(nickname string, usermode int) os.Error {
+    // Form NICK message
+    loginMessage := "NICK " + nickname + "\r\n";
+    // Form USER message
+    username := "gobot";        // TODO: make this a parameter
+    realname := "Go Programming Language"; // TODO: make this a paramater
     loginMessage += "USER " + username + " " + strconv.Itoa(usermode) + " * :" + realname + "\r\n";
+    // Write to connection and return result
+    _, err := c.Write(strings.Bytes(loginMessage);
+    return err;
+}
 
-    // Send a private message
-    recipient := "ajray";
-    message := "hi!";
-    loginMessage += "PRIVMSG " + recipient + " :" + message + "\r\n";
+// PrivMsg() sends a private message to the given user
+func (c *IRCConn) PrivMsg(recipient, message string) os.Error {
+    privMessage := "PRIVMSG " + recipient + " :" + message + "\r\n";
+    // Write to connection and return result
+    _, err := c.Write(strings.Bytes(loginMessage);
+    return err;
+}
 
-    // Send a private message to NickServ identifying us
-    recipient = "NickServ";
-    message = "identify " + nickname + " " + password;
-    loginMessage += "PRIVMSG " + recipient + " :" + message + "\r\n";
+// IRCChan - IRC Channel
+type IRCChan struct{
+    Conn IRCConn; // IRC Connection this channel is on
+    Chan string;  // IRC Channel name
+}
 
-    // Tell it a channame
-    channame := "#bottest"; // TODO: make this a parameter
-    loginMessage += "JOIN " + channame + "\r\n";
-    conn.Write(strings.Bytes(loginMessage));
-    log.Stdoutf("SENT: %s", loginMessage);
+// Join() - Join an IRC Channel on an IRC Connection
+func (c *IRCConn) Join(channame string) *IRCChan, os.Error {
+    joinMessage := "JOIN " + channame + "\r\n";
+    if _, err := c.tcpConn.Write(strings.Bytes(loginMessage)); err != nil {
+        return nil, err;
+    }
+    var ircChan *IRCChan;
+    ircChan.Chan = channame;
+    ircConn.Conn = c;
+    return ircConn, err;
+}
 
+/*
     // Talk to server (loop forever)
     connReader := bufio.NewReader(conn);
     for i := 0; i < 100; i++ {
@@ -84,3 +104,4 @@ func main() {
     // We're done with the connection, close it
     conn.Close();
 }
+*/
