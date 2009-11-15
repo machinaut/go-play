@@ -18,23 +18,29 @@ const (
     FlagInvisible = 1 << 3; // User doesn't show up in WHO listings
 )
 
-// IRCConn is an implementation of the net.Conn interface for IRC network connections.
+// IRCConn is an (implementation of the net.Conn interface) for IRC network connections.
+// Not there yet but working on it. TODO: actually fulfil the interface
 type IRCConn struct {
     Nickname string;
     Usermode int;
-    tcpConn  *net.TCPConn;
+    Conn     net.Conn;
 }
 
 // DialIRC() is like net.Dial() but can only connect to IRC networks
 // and returns a IRCConn structure.
-func IRCDial(netc, laddr, raddr string) (IRCConn, os.Error) {
+func IRCDial(netc, laddr, raddr string) (c *IRCConn, err os.Error) {
     conn, err := net.Dial(netc, laddr, raddr);
     if err != nil {
         return nil, err
     }
-    var c *IRCConn;
-    c.tcpConn = conn;
-    return c;
+    c.Conn = conn;
+    return c, nil;
+}
+
+// Write writes data to the TCP connection.
+// TODO: Make this copy TCPConn's Write
+func (c *IRCConn) Write(b []byte) (n int, err os.Error) {
+    return c.Conn.Write(b)
 }
 
 // Login() sends a login message with a given nickname
@@ -55,26 +61,25 @@ func (c *IRCConn) Login(nickname string, usermode int) os.Error {
 func (c *IRCConn) PrivMsg(recipient, message string) os.Error {
     privMessage := "PRIVMSG " + recipient + " :" + message + "\r\n";
     // Write to connection and return result
-    _, err := c.Write(strings.Bytes(loginMessage));
+    _, err := c.Write(strings.Bytes(privMessage)); // TODO: check bytes written (see net's TCP shit)
     return err;
 }
 
 // IRCChan - IRC Channel
 type IRCChan struct {
-    Conn IRCConn; // IRC Connection this channel is on
-    Chan string;  // IRC Channel name
+    Conn *IRCConn; // IRC Connection this channel is on
+    Chan string;   // IRC Channel name
 }
 
 // Join() - Join an IRC Channel on an IRC Connection
-func (c *IRCConn) Join(channame string) (*IRCChan, os.Error) {
+func (c *IRCConn) Join(channame string) (ch *IRCChan, err os.Error) {
     joinMessage := "JOIN " + channame + "\r\n";
-    if _, err := c.tcpConn.Write(strings.Bytes(loginMessage)); err != nil {
+    if _, err := c.Write(strings.Bytes(joinMessage)); err != nil {
         return nil, err
     }
-    var ircChan *IRCChan;
-    ircChan.Chan = channame;
-    ircConn.Conn = c;
-    return ircConn, err;
+    (*ch).Chan = channame;
+    (*ch).Conn = c;
+    return ch, err;
 }
 
 /*
