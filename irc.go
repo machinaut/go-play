@@ -1,12 +1,14 @@
 // IRC - Internet Relay Chat package provides a convenient method of writing IRC clients and chat bots (RFC 2812).
+// TODO: operate on byte[]s instead of strings for most stuff
 package irc
 
 import (
     "net";
     "os";
-
+    "bufio";
     "strings";
     "strconv";
+    "log";
 )
 
 // User modes for logging in, you probably just want Invisible on
@@ -29,11 +31,12 @@ type IRCConn struct {
 // DialIRC() is like net.Dial() but can only connect to IRC networks
 // and returns a IRCConn structure.
 func IRCDial(netc, laddr, raddr string) (c *IRCConn, err os.Error) {
+    log.Stdout("Dialing");
     conn, err := net.Dial(netc, laddr, raddr);
     if err != nil {
         return nil, err
     }
-    c.Conn = conn;
+    (*c).Conn = conn;
     return c, nil;
 }
 
@@ -43,17 +46,31 @@ func (c *IRCConn) Write(b []byte) (n int, err os.Error) {
     return c.Conn.Write(b)
 }
 
+// Read reads data from the TCP connection.
+// TODO: Make this copy TCPConn's Read
+func (c *IRCConn) Read(b []byte) (n int, err os.Error) {
+    return c.Conn.Read(b)
+}
+
+// Read a line from the TCP connection.
+// Returns the line as a "\r\n"-terminated string.
+// TODO: clean this up like Read/Write
+func (c *IRCConn) ReadLine() (string, os.Error) {
+    rd := bufio.NewReader(c.Conn);
+    return rd.ReadString('\n');
+}
+
 // Login() sends a login message with a given nickname
 // and a given usermode.
-func (c *IRCConn) Login(nickname string, usermode int) os.Error {
+func (c *IRCConn) Login(nick string, u UserMode) os.Error {
     // Form NICK message
-    loginMessage := "NICK " + nickname + "\r\n";
+    loginMessage := "NICK " + nick + "\r\n";
     // Form USER message
     username := "gobot";                   // TODO: make this a parameter
     realname := "Go Programming Language"; // TODO: make this a paramater
-    loginMessage += "USER " + username + " " + strconv.Itoa(usermode) + " * :" + realname + "\r\n";
+    loginMessage += "USER " + username + " " + strconv.Itoa(int(u)) + " * :" + realname + "\r\n";
     // Write to connection and return result
-    _, err := c.Write(strings.Bytes(loginMessage));
+    _, err := c.Write(strings.Bytes(loginMessage)); // TODO: check actual count somehow
     return err;
 }
 
@@ -80,6 +97,15 @@ func (c *IRCConn) Join(channame string) (ch *IRCChan, err os.Error) {
     (*ch).Chan = channame;
     (*ch).Conn = c;
     return ch, err;
+}
+
+// Close() - close connection to server neatly
+func (c *IRCConn) Close() os.Error { return c.Conn.Close() }
+
+// Write() - write to an irc channel
+// TODO: clean this up like the othre reads/writes
+func (ch *IRCChan) Write(mesg string) os.Error {
+    return ch.Conn.PrivMsg(ch.Chan, mesg)
 }
 
 /*
