@@ -30,7 +30,7 @@ func main() {
 
     // We're done with the connection, close it
     log.Stdout("Sleeping before closing");
-    time.Sleep(1e12);
+    time.Sleep(1e10);
     log.Stdout("Closing");
     server.Close();
 }
