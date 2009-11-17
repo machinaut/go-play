@@ -8,7 +8,6 @@ import (
     "bufio";
     "strings";
     "strconv";
-    "log";
 )
 
 // User modes for logging in, you probably just want Invisible on
@@ -31,11 +30,11 @@ type IRCConn struct {
 // DialIRC() is like net.Dial() but can only connect to IRC networks
 // and returns a IRCConn structure.
 func IRCDial(netc, laddr, raddr string) (c *IRCConn, err os.Error) {
-    log.Stdout("Dialing");
     conn, err := net.Dial(netc, laddr, raddr);
     if err != nil {
         return nil, err
     }
+    c = new(IRCConn);
     (*c).Conn = conn;
     return c, nil;
 }
@@ -94,6 +93,7 @@ func (c *IRCConn) Join(channame string) (ch *IRCChan, err os.Error) {
     if _, err := c.Write(strings.Bytes(joinMessage)); err != nil {
         return nil, err
     }
+    ch = new(IRCChan);
     (*ch).Chan = channame;
     (*ch).Conn = c;
     return ch, err;
