@@ -17,14 +17,17 @@ func main() {
     reader := bufio.NewReader(file);
     src, err := reader.ReadBytes('\x00');
     if err != nil {
-        log.Stdout("Error: ", err)
+        log.Stdout("Reading stopped: ", err)
     }
-    log.Stdout(string(src));
     // Read in the grammar
     grammar, err := ebnf.Parse("", src);
-    log.Stdout(err);
-    log.Stdout(grammar);
+    if err != nil {
+        log.Exit("Parse Error: ", err)
+    }
     // Verify the grammar
     err = ebnf.Verify(grammar, "message");
-    log.Stdout(err);
+    if err != nil {
+        log.Exit("Verification Error: ", err)
+    }
+    log.Stdout("Success");
 }
