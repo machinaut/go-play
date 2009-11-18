@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-    file, err := os.Open("irc.ebnf.go", os.O_RDONLY, 0666);
+    file, err := os.Open("full_irc.ebnf.go", os.O_RDONLY, 0666);
     if err != nil {
         log.Exit("Error: ", err)
     }
@@ -20,6 +20,7 @@ func main() {
         log.Stdout("Reading stopped: ", err)
     }
     // Read in the grammar
+    //log.Stdoutf("%s", src);
     grammar, err := ebnf.Parse("", src);
     if err != nil {
         log.Exit("Parse Error: ", err)

@@ -29,10 +29,15 @@
 //    SPACE      =  %x20        ; space character
 //    crlf       =  %x0D %x0A   ; "carriage return" "linefeed"
 
-message    =  [ ":" prefix SPACE ] command [ params ] crlf .
+message    =  [ ":" prefix space ] command [ params ] crlf .
 prefix     =  servername | ( nickname [ [ "!" user ] "@" host ] ) .
-command    =  1*letter | 3digit .
-params     =  { SPACE middle } [ SPACE [ ":" ] trailing ]
+word       =  letter { letter } .
+threenum   =  digit digit digit .
+command    =  word | threenum .
+p          =  space middle .
+params     =  [p[p[p[p[p[p[p[p[p[p[p[p[p[p]]]]]]]]]]]]]] [ space ":" trailing ]
+           |   p p p p p p p p p p p p p p [ space [ ":" ] trailing ] .
+               // 14 of each. Exactly matches RFC 2812
 
 nospcrlfcl =  "\x01" ... "\x09" | "\x0B" ... "\x0C" | "\x0E" ... "\x1F"
            |  "\x21" ... "\x39" | "\x3B" ... "\xFF" .
@@ -40,7 +45,7 @@ nospcrlfcl =  "\x01" ... "\x09" | "\x0B" ... "\x0C" | "\x0E" ... "\x1F"
 middle     =  nospcrlfcl { ":" | nospcrlfcl } .
 trailing   =  { ":" | " " | nospcrlfcl } .
 
-SPACE      =  " "    .   // space character
+space      =  " "    .   // space character
 crlf       =  "\r\n" .   // "carriage return" "linefeed"
 
 //Kalt                         Informational                      [Page 6]
@@ -81,6 +86,7 @@ crlf       =  "\r\n" .   // "carriage return" "linefeed"
 //  ip4addr    =  1*3digit "." 1*3digit "." 1*3digit "." 1*3digit
 //  ip6addr    =  1*hexdigit 7( ":" 1*hexdigit )
 //  ip6addr    =/ "0:0:0:0:0:" ( "0" / "FFFF" ) ":" ip4addr
+//  nickname   =  ( letter / special ) *8( letter / digit / special / "-" )
 
 servername =  hostname .
 host       =  hostname | hostaddr .
@@ -95,8 +101,10 @@ hexnumber  =  hexdigit { hexdigit } .
 ip6addr    =  hexnumber ":" hexnumber ":" hexnumber ":" hexnumber ":"
                 hexnumber ":" hexnumber ":" hexnumber ":" hexnumber
            |  "0:0:0:0:0:" ( "0" | "FFFF" ) ":" ip4addr .
+namebit    =  letter | digit | special | "-" .
+nickname   =  ( letter | special ) [ namebit [ namebit [ namebit [ namebit
+           [ namebit [ namebit [ namebit [ namebit ] ] ] ] ] ] ] ] .
 
-//  nickname   =  ( letter / special ) *8( letter / digit / special / "-" )
 //  targetmask =  ( "$" / "#" ) mask
 //                  ; see details on allowed masks in section 3.3.1
 //  chanstring =  %x01-07 / %x08-09 / %x0B-0C / %x0E-1F / %x21-2B
@@ -114,11 +122,17 @@ ip6addr    =  hexnumber ":" hexnumber ":" hexnumber ":" hexnumber ":"
 //  letter     =  %x41-5A / %x61-7A       ; A-Z / a-z
 //  digit      =  %x30-39                 ; 0-9
 //  hexdigit   =  digit / "A" / "B" / "C" / "D" / "E" / "F"
+//  special    =  %x5B-60 / %x7B-7D
+//                   ; "[", "]", "\", "`", "_", "^", "{", "|", "}"
+userbit    =  "\x01" ... "\x09" | "\x0B" ... "\x0C" | "\x0E" ... "\x1F"
+           |  "\x21" ... "\x3F" | "\x41" ... "\xFF" .
+                // any octet except NUL, CR, LF, " " and "@"
+user       =  userbit { userbit } .
 letter     =  "A" ... "Z" | "a" ... "z" .
 digit      =  "0" ... "9" .
 hexdigit   =  digit | "A" ... "F" .
-//  special    =  %x5B-60 / %x7B-7D
-//                   ; "[", "]", "\", "`", "_", "^", "{", "|", "}"
+special    =  "\x5B" ... "\x60" | "\x7B" ... "\x7D" .
+                // "[", "]", "\", "`", "_", "^", "{", "|", "}"
 //
 //  NOTES:
 //      1) The <hostaddr> syntax is given here for the sole purpose of
