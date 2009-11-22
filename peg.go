@@ -1,1 +1,3 @@
-#foo
+# Hierarchical syntax
+Grammar     <- Spacing Definition+ EndOfFile
+
