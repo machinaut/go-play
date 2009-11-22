@@ -1,19 +1,19 @@
 # Hierarchical syntax
-Grammar     <- Spacing Definition+ EndOfFile
-Definition  <- Identifier LEFTARROW Expression
+Grammar     <- Spacing Definition+ EndOfFile    # The whole grammar file
+Definition  <- Identifier LEFTARROW Expression  # The Definition Definition
 
-Expression  <- Sequence (SLASH Sequence)*
-Sequence    <- Prefix*
-Prefix      <- (AND / NOT)? Suffix
-Suffix      <- Primary (QUESTION / STAR / PLUS)?
-Primary     <- Identifier !LEFTARROW
-             / OPEN Expression CLOSE
-             / Literal / Class / DOT
+Expression  <- Sequence (SLASH Sequence)*       # Choices
+Sequence    <- Prefix*                          # Series of primaries w/ stuff
+Prefix      <- (AND / NOT)? Suffix              # Stuff before a primary
+Suffix      <- Primary (QUESTION / STAR / PLUS)? # Stuff after a primary
+Primary     <- Identifier !LEFTARROW            # Nonterminal
+             / OPEN Expression CLOSE            # Subexpression
+             / Literal / Class / DOT            # Terminal
 
 # Lexical syntax
-Identifier  <- IdentStart IdentCont* Spacing
-IdentStart  <- [a-zA-Z_]
-IdentCont   <- IdentStart / [0-9]
+Identifier  <- IdentStart IdentCont* Spacing # Name has to start with a
+IdentStart  <- [a-zA-Z_]                     # letter or an underscore
+IdentCont   <- IdentStart / [0-9]            # and can have numbers in it
 
 Literal     <- ['] (!['] Char)* ['] Spacing  # 'lawl' 'nar' ''
              / ["] (!["] Char)* ["] Spacing  # "lawl" "nar" ""
@@ -21,7 +21,7 @@ Class       <- '[' (!']' Range)* ']' Spacing # [bar] []
 Range       <- Char '-' Char / Char          # a-z L
 Char        <- '\\' [nrt'"\[\]\\]            # \n \r \t \' \" \] \] \\
              / '\\' ([0-2]?[0-7])?[0-7]      # \123 \50 \2
-             / !'\\' .
+             / !'\\' .                       # Anything else
 
 LEFTARROW   <- '<-' Spacing
 SLASH       <- '/' Spacing
