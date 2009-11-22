@@ -4,7 +4,7 @@ Definition  <- Identifier LEFTARROW Expression  # The Definition Definition
 
 Expression  <- Sequence (SLASH Sequence)*       # Choices
 Sequence    <- Prefix*                          # Series of primaries w/ stuff
-Prefix      <- (AND / NOT)? Suffix               # Stuff before a primary
+Prefix      <- (AND / NOT)? Suffix               # Syntactic predicates
 Suffix      <- Primary (QUESTION / STAR / PLUS)? # Stuff after a primary
 Primary     <- Identifier !LEFTARROW            # Nonterminal
              / OPEN Expression CLOSE            # Subexpression
@@ -24,7 +24,7 @@ Char        <- '\\' [nrt'"\[\]\\]            # \n \r \t \' \" \] \] \\
              / !'\\' .                       # Anything else
 
 LEFTARROW   <- '<-' Spacing
-SLASH       <- '/' Spacing
+SLASH       <- '/' Spacing  # Prioritized Choice Operator
 AND         <- '&' Spacing
 NOT         <- '!' Spacing
 QUESTION    <- '?' Spacing
