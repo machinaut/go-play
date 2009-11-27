@@ -47,10 +47,13 @@
 //
 package main
 
-//import (
-//	"unicode";
-//	"utf8";
-//)
+import (
+    "fmt";
+    "io";
+    "log";
+    //	"unicode";
+    "utf8";
+)
 
 
 // ----------------------------------------------------------------------------
@@ -97,4 +100,24 @@ type (
     };
 )
 
-func main() { return }
+//func Gram() {
+//    for {
+//        Defn()
+//    }
+//    return true;
+//}
+//
+//func Defn() {
+//    return 1 and 2 and 3
+
+func main() {
+    maths, err := io.ReadFile("math.peg");
+    if err != nil {
+        log.Exit("Error: ", err)
+    }
+
+    fmt.Println(maths);
+    rune, size := utf8.DecodeRuneInString(string(maths));
+    fmt.Println(rune, size);
+    return;
+}
