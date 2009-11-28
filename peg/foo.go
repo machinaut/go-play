@@ -51,7 +51,8 @@ import (
     "fmt";
     "io";
     "log";
-    //	"unicode";
+    "strings";
+    "unicode";
     "utf8";
 )
 
@@ -61,54 +62,158 @@ import (
 
 type (
     // A Grammar node represents a whole PEG
-    //
     // Grammar ←  Spacing Definition* EndOfFile
-    Grammar []Definition;
+    Grammar map[string]Expression;
 
     // A Definition node represents a nonterminal definition
-    //
     // Definition ←  Identifier '←' Expression
     Definition struct {
-        Ident string;
-        Expr  Expression;
+        Identifier string;
+        Expr       Expression;
     };
 
     // An Epression node is a series of choices (in order)
-    //
     // Expression ←  Sequence ('/' Sequence)*
     Expression []Sequence;
 
     // A Sequence node is a sequence of primarys
-    //
     // Sequence ←  Primary*
     Sequence []Primary;
 
     // A Primary node is the basic element of sequences
-    //
     // Primary ←  Prefix? Inner Suffix?
+    // Inner ←  Identifier !'←' / '(' Expression ')' / Literal / Class / '.'
     Primary struct {
         Prefix string; // Prefix ←  '&' / '!'
         Suffix string; // Suffix ←  '?' / '*' / '+'
-        Inn    Inner;
     };
-
-    // An Inner node is the inside of a primary statement
-    //
-    // Inner ←  Identifier !'←' / '(' Expression ')' / Literal / Class / '.'
-    Inner interface {
-        // Nothing in here yet
+    // Primary with Inner ← Identifier !'←'
+    PrimaryIdentifier struct {
+        *Primary;
+        Identifier string;
+    };
+    // Primary with Inner ← '(' Expression ')'
+    PrimaryExpression struct {
+        *Primary;
+        Expr Expression;
+    };
+    // Primary with Literal
+    PrimaryLiteral struct {
+        *Primary;
+        Literal string;
+    };
+    // Primary with Range
+    PrimaryRange struct {
+        *Primary;
+        Range unicode.Range;
     };
 )
 
-//func Gram() {
-//    for {
-//        Defn()
-//    }
-//    return true;
-//}
-//
-//func Defn() {
-//    return 1 and 2 and 3
+// ----------------------------------------------------------------------------
+// Parsing functions
+// By convention:
+//  * function names start with a lowercase 'p'
+//  * functions evaluate to a single boolean value
+//  * parameters/return values are passed by reference so it just evaluates to a boolean
+//  * backtracking is the responsibility of the callee
+//     (so correctly store the old *i if you modify it, and always return the correct value)
+
+// Parses a PEG into grammar from src returning sucess (true) or failure (false)
+// Grammar ←  Spacing Definition* EndOfFile
+func pGrammar(gram Grammar, src []byte, i *int) bool {
+    d := new(Definition); // To store parse results
+    for pDefinition(d, src, i) {
+        gram[d.Identifier] = d.Expr
+    }
+    return true;
+}
+
+// Parses a definition in a PEG
+// Definition ←  Identifier '←' Expression
+func pDefinition(d *Definition, src []byte, i *int) bool {
+    old := *i; // Store old *i for backtracking
+    ident, expr := new(string), new(Expression);
+    if pIdentifier(ident, src, i) && pLiteral("←", src, i) && pExpression(expr, src, i) {
+        d.Identifier = *ident;
+        d.Expr = *expr;
+        return true;
+    }
+    // No match
+    *i = old;
+    return false;
+}
+
+// Parses a PEG Expression
+// Expression  ←  Sequence ('/' Sequence)*
+func pExpression(expr *Expression, src []byte, i *int) bool {
+    old := *i; // Store old *i for backtracking
+    fmt.Println(expr, src, old);
+    return true;
+}
+
+// Parses an identifier in a PEG
+// Identifier  ←  Letter ( Letter / Digit )* White_Space*
+func pIdentifier(ident *string, src []byte, i *int) bool {
+    rune := new(string); // container for pRange results, holds one rune
+    // Letter
+    if pRange(unicode.Letter, rune, src, i) {
+        *ident += *rune;
+        // ( Letter / Digit )*
+        for {
+            // Letter
+            if pRange(unicode.Letter, rune, src, i) {
+                *ident += *rune;
+                continue;
+            }
+            // Digit
+            if pRange(unicode.Digit, rune, src, i) {
+                *ident += *rune;
+                continue;
+            }
+            // No match
+            break;
+        }
+        // White_Space*
+        for {
+            // White_Space
+            if pRange(unicode.White_Space, rune, src, i) {
+                continue
+            }
+            // No match
+            break;
+        }
+        return true;
+    }
+    // No match
+    return false;
+}
+
+// Parses the next rune and checks to see if its in a given range
+func pRange(ranges []unicode.Range, result *string, src []byte, i *int) bool {
+    rune, size := utf8.DecodeRune(src);
+    if unicode.Is(ranges, rune) {
+        buf := make([]byte, size);
+        utf8.EncodeRune(rune, buf);
+        *result = string(buf);    // return resulting rune
+        *i += size;               // Update index
+        src = src[size:len(src)]; // Update slice
+        return true;
+    }
+    // No match
+    return false;
+}
+
+// Parses the next rune and checks to see if it is a specific literal
+func pLiteral(literal string, src []byte, i *int) bool {
+    size := len(strings.Bytes(literal));
+    if literal == string(src[0:size]) {
+        *i += size;
+        src = src[size:len(src)];
+        return true;
+    }
+    // No match
+    return false;
+}
 
 func main() {
     maths, err := io.ReadFile("math.peg");
