@@ -168,14 +168,36 @@ func pExpression(expr *Expression, src []byte, i *int) bool {
 }
 
 // Parses a PEG Sequence
-// Sequence    ←  Primary*                      # Series of primaries
-// Primary     ←  Prefix? Inner Suffix?         # Optional prefix/suffix
-// Prefix      ←  '&' / '!'                     # Stuff before a primary
-// Suffix      ←  '?' / '*' / '+'               # Stuff after a primary
+// Sequence    ←  Primary*
 func pSequence(seq *Sequence, src []byte, i *int) bool {
     old := *i; // Store old *i for backtracking
     fmt.Println(seq, src, old);
+    prim := new(Primary);
+    for {
+        if pPrimary(prim, src, i) {
+            *seq.Append(*prim);
+            continue;
+        }
+        break;
+    }
     return true;
+}
+
+// Parse a Primary
+// Primary     ←  Prefix? Inner Suffix?         # Optional prefix/suffix
+// Prefix      ←  '&' / '!'                     # Stuff before a primary
+// Suffix      ←  '?' / '*' / '+'               # Stuff after a primary
+func pPrimary(prim *Primary, src []byte, i *int) bool {
+    pre, suf := new(string), new(string);
+    pPrefix(pre, src, i); // ignore retval
+    prim.Prefix = *pre;
+    if pInner(pre, src, i) {
+        pSuffix(suf, src, i); // ignore retval
+        prim.Suffix = *suf;
+        return true;
+    }
+    // No match
+    return false;
 }
 
 // Parses an identifier in a PEG
