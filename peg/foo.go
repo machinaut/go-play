@@ -217,13 +217,13 @@ func pIdentifier(ident *string, src []byte, i *int) bool {
 
 // Parses the next rune and checks to see if its in a given range
 func pRange(ranges []unicode.Range, result *string, src []byte, i *int) bool {
-    rune, size := utf8.DecodeRune(src);
+    rune, size := utf8.DecodeRune(src[i:i+utf8.UTF8Max]);
     if unicode.Is(ranges, rune) {
         buf := make([]byte, size);
         utf8.EncodeRune(rune, buf);
         *result = string(buf);    // return resulting rune
         *i += size;               // Update index
-        src = src[size:len(src)]; // Update slice
+        //src = src[size:len(src)]; // Update slice
         return true;
     }
     // No match
@@ -233,9 +233,9 @@ func pRange(ranges []unicode.Range, result *string, src []byte, i *int) bool {
 // Parses the next rune and checks to see if it is a specific literal
 func pLiteral(literal string, src []byte, i *int) bool {
     size := len(strings.Bytes(literal));
-    if literal == string(src[0:size]) {
+    if literal == string(src[i:i+size]) {
         *i += size;
-        src = src[size:len(src)];
+        //src = src[size:len(src)];
         return true;
     }
     // No match
