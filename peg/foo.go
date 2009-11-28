@@ -146,8 +146,35 @@ func pDefinition(d *Definition, src []byte, i *int) bool {
 // Parses a PEG Expression
 // Expression  ←  Sequence ('/' Sequence)*
 func pExpression(expr *Expression, src []byte, i *int) bool {
+    // TODO: Theres gotta be a better way to append to Expressions ([]Sequence)s
+    seq := new(Sequence);
+    if pSequence(seq, src, i) {
+        // BIG FUCKING TODO:
+        // expr.Append(seq) which needs to not depend on seq, cause we're about to clobber it
+        for {
+            old := *i; // Store old *i for backtracking
+            if pLiteral("/", src, i) && pSequence(seq, src, i) {
+                // expr.Append(seq);
+                continue
+            }
+            // No match
+            *i = old; // Backtrack to last sucessful parse
+            break;
+        }
+        return true;
+    }
+    // No match
+    return false;
+}
+
+// Parses a PEG Sequence
+// Sequence    ←  Primary*                      # Series of primaries
+// Primary     ←  Prefix? Inner Suffix?         # Optional prefix/suffix
+// Prefix      ←  '&' / '!'                     # Stuff before a primary
+// Suffix      ←  '?' / '*' / '+'               # Stuff after a primary
+func pSequence(seq *Sequence, src []byte, i *int) bool {
     old := *i; // Store old *i for backtracking
-    fmt.Println(expr, src, old);
+    fmt.Println(seq, src, old);
     return true;
 }
 
